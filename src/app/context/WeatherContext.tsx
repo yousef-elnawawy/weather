@@ -7,14 +7,11 @@ type WeatherContextType = {
   weatherState: string | null;
   maxTemp: number | null;
   minTemp: number | null;
-  localtime: string | null; // 👈 أضف السطر ده
+  localtime: string | null;
 };
 
-
-// 2- إنشاء الكونتكست
 export const WeatherContext = createContext<WeatherContextType | null>(null);
 
-// 3- Provider
 export const WeatherProvider = ({ children }: { children: ReactNode }) => {
   const [temperature, setTemperature] = useState<number | null>(null);
   const [weatherState, setWeatherState] = useState<string | null>(null);
@@ -22,29 +19,34 @@ export const WeatherProvider = ({ children }: { children: ReactNode }) => {
   const [minTemp, setMinTemp] = useState<number | null>(null);
   const [localtime, setLocaltime] = useState<string | null>(null);
 
-
   useEffect(() => {
-    axios
-      .get(
-"https://api.weatherapi.com/v1/current.json?key=c89f3b902dae44c2a55162358250607&q=Cairo&lang=ar"
-  )
-      .then((res) => {
-        setTemperature(res.data.current.temp_c);
-        setWeatherState(res.data.current.condition.text);
-        // WeatherAPI current API معندوش max/min, فممكن نحطهم بقيمة temp_c ك placeholder لو هتستخدم current بس
-        setMaxTemp(res.data.current.temp_c);
-        setMinTemp(res.data.current.temp_c);
-          setLocaltime(res.data.location.localtime); // 👈 هنا
+    // هنا بنجيب المدينة من ipapi
+    axios.get("https://ipapi.co/json/")
+      .then((response) => {
+        const city = response.data.city;
+
+        // بعد ما عرفنا المدينة، نطلب الطقس بتاعها
+        axios
+          .get(
+            `https://api.weatherapi.com/v1/current.json?key=c89f3b902dae44c2a55162358250607&q=${city}&lang=ar`
+          )
+          .then((res) => {
+            setTemperature(res.data.current.temp_c);
+            setWeatherState(res.data.current.condition.text);
+            setMaxTemp(res.data.current.temp_c);
+            setMinTemp(res.data.current.temp_c);
+            setLocaltime(res.data.location.localtime);
+          })
+          .catch((err) => console.error("مشكلة في جلب بيانات الطقس:", err));
       })
-      .catch((err) => console.error(err));
+      .catch((err) => console.error("مشكلة في تحديد المدينة:", err));
   }, []);
 
   return (
-<WeatherContext.Provider
-  value={{ temperature, weatherState, maxTemp, minTemp, localtime }}
->
-  {children}
-</WeatherContext.Provider>
-
+    <WeatherContext.Provider
+      value={{ temperature, weatherState, maxTemp, minTemp, localtime }}
+    >
+      {children}
+    </WeatherContext.Provider>
   );
 };
